@@ -1,0 +1,3161 @@
+import React, {
+  useState,
+  useEffect,
+  useReducer,
+  useContext,
+  makeStyles,
+} from "react";
+import Dialog from "@material-ui/core/Dialog";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import { Grid } from "@mui/material";
+import ClearIcon from "@mui/icons-material/Clear";
+import WarningIcon from "@mui/icons-material/Warning";
+import { TeamReviewsContext } from "../../TeamReviews";
+import Loader from "react-loader-spinner";
+import axios from "axios";
+import { environment } from "../../../../../environments/environment";
+import { faCircle } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { width } from "@mui/system";
+import moment from "moment";
+import TeamReviewsNineBoxApprove from "./TeamReviewsNineBoxApprove";
+import TeamReviewsNineBoxReject from "./TeamReviewsNineBoxReject";
+import "./TeamReviewsSubmitEmployeeReview.css";
+
+function TeamReviewsSubmitEmployeeReview({
+  supervisorId,
+  submitEmpReviewDisable,
+  refreshMain,
+}) {
+  //--------------abhi.... approval chain states
+
+  // decrypt id
+
+  // var CryptoJS = require("crypto-js");
+  const secretKey = environment.secretKey;
+  const encLoggedUserId = localStorage.getItem("encResId");
+  var CryptoJS = require("crypto-js");
+  var bytes = CryptoJS.AES.decrypt(encLoggedUserId.toString(), secretKey);
+  const loggedUserId = bytes.toString(CryptoJS.enc.Utf8);
+
+  var bytes = CryptoJS.AES.decrypt(encLoggedUserId.toString(), secretKey);
+
+  const [openApprove, setOpenApprove] = useState(false);
+  const [newRatingDbox, setnewRatingDbox] = useState(0);
+  const [nineBoxRating, setNineBoxRating] = useState(false);
+  const [newCompeteRatingDbox, setCompetenewRatingDbox] = useState(0);
+  const [newSuperRatingDbox, setSupernewRatingDbox] = useState(0);
+  const [empDetails, setEmpDetails] = useState([]);
+  const [questionaryData, setQuestionaryData] = useState([]);
+  const [lengthofFirstCase, setLengthofFirstCase] = useState(0);
+  const [hasReportees, setHasReportees] = useState(0);
+  const [rejectLoader, setRejectLoader] = useState(false);
+  const [approveLoader, setApproveLoader] = useState(false);
+  const [loaderState, setLoaderState] = useState(false);
+  const [loaderStateReject, setLoaderStateReject] = useState(false);
+  const [componentDisabled, setComponentDisabled] = useState(false);
+  const [alreadySubmitted, setalreadySubmitted] = useState(false);
+  const [competencyDatalength, setCompetencyDatalength] = useState([]);
+  const [approvalDiasable, setApprovalDiasable] = useState([]);
+  const [competencyValidation, setCompetencyValidation] = useState(false);
+  const [supervisorValidation, setsupervisorValidation] = useState(false);
+  const [compandSuperValidation, setcompandSuperValidation] = useState(false);
+  const [induvidaualAccess, setInduvidaualAccess] = useState(false);
+  const [supervisorLevel, setSupervisorLevel] = useState([]);
+  const [loader, setLoader] = useState(false);
+  const [departmentData, setDepartmentData] = useState();
+  const [employeeDetails, setEmployeeDetails] = useState([]);
+  const [newCompetencyLevel, setNewCompetencyLevel] = useState();
+  const [successMsg, setsuccessMsg] = useState(false);
+  const [supervosrMsg, setSupervisorMsg] = useState(false);
+  const [dataCompRating, setDataCompRating] = useState(0);
+  const [leadEntries, setLeadEntries] = useState();
+  const [reviewLevel, setreviewLevel] = useState(0);
+  const [promotion, setPromotion] = useState("");
+  const [departmentCompetency, setDepartmentCompetency] = useState([]);
+  const [DepartmentCompetencycountry, setDepartmentCompetencycountry] =
+    useState([]);
+  const [dataRating, setDataRating] = useState(0);
+  const [dataRatingSuper, setDataRatingSuper] = useState(0);
+  const [approvePop, setApprovePop] = useState(false);
+  const [isActiveLevel, setIsActiveLevel] = useState([]);
+  const [leadIndividualLevel, setLeadIndividualLevel] = useState([]);
+  const [approvalCooments, setApprovalCooments] = useState([]);
+  const [promotionData, setPromotionData] = useState([]);
+  const [rejectPop, setRejectPop] = useState(false);
+  const [competencyDataLevel, setCompetencyDataLevel] = useState();
+  const [hasReportees2, setHasReportees2] = useState(null);
+  const [supervisorRating, setSupervisorRating] = useState([]);
+  const [promotionReady, setPromotionReady] = useState(true);
+  const [pep369Questinary, setpep369Questinary] = useState([]);
+  const [approveRejectLevel, setApproveRejectLevel] = useState("");
+  const [leadEntriesRating, setLeadEntriesRating] = useState("");
+  console.log(leadEntriesRating);
+  const [leadEntriesNew, setLeadEntriesNew] = useState();
+  const baseUrl = environment.baseUrl;
+  const [
+    commentstosupporttheaboveValidationNew,
+    setcommentstosupporttheaboveValidationNew,
+  ] = useState("");
+  // decrypt id
+  console.log(approveRejectLevel, approvalDiasable[0]?.review_level, "");
+  const [commentValidation, setCoomentValidation] = useState(false);
+  const [CountryDetailsloggin, setCountryDetailsloggin] = useState([]);
+  let pageMessageNew = "Please Provide Comments";
+  console.log(
+    CountryDetailsloggin != departmentCompetency[0]?.country,
+    CountryDetailsloggin,
+    departmentCompetency[0]?.country,
+    DepartmentCompetencycountry
+  );
+  const [totalHours, setTotalHours] = useState(40);
+
+  let now = new Date();
+  const TYPE = {
+    SUBMIT_QUESTIONAIRE: "SUBMIT QUESTIONAIRE",
+    RATING: "UPDATING RATING",
+    IS_PERFORMER: "IS PERFORMER",
+    NOTIFIED_TO_HR: "NOTIFIED TO HR",
+    PROJECT_MANAGER_FEEDBACK: "PROJECT MANAGER FEEDBACK",
+    COMMENTS_TO_SUPPORT: "COMMENTS TO SUPPORT",
+    READY_FOR_PROMOTION: "READY FOR PROMOTION",
+    PROMOTION_COMMENTS: "PROMOTION COMMENTS",
+    PROMOTION_DATA: "PROMOTION DATA",
+  };
+  function ReducerFunction(data, action) {
+    switch (action.type) {
+      case "TYPE.SUBMIT_QUESTIONAIRE":
+        return { ...data, submitQuestionaire: action.payload.setObject };
+      case "TYPE.RATING":
+        return { ...data, rating: action.payload.setValue };
+      case "TYPE.IS_PERFORMER": {
+        return { ...data, isPerformer: parseInt(action.payload.setValue) };
+      }
+      case "TYPE.NOTIFIED_TO_HR": {
+        return { ...data, notifiedToHr: action.payload.setValue };
+      }
+      case "TYPE.PROJECT_MANAGER_FEEDBACK": {
+        return { ...data, projectManagerFeedback: action.payload.setValue };
+      }
+      case "TYPE.COMMENTS_TO_SUPPORT": {
+        return { ...data, supportComments: action.payload.setValue };
+      }
+      case "TYPE.READY_FOR_PROMOTION": {
+        return { ...data, readyForPromotion: action.payload.setValue };
+      }
+      case "TYPE.PROMOTION_COMMENTS": {
+        return { ...data, promotionComments: action.payload.setValue };
+      }
+      case "TYPE.PROMOTION_DATA": {
+        return { ...data, promotionData: action.payload.setValue };
+      }
+      default: {
+        return { ...data };
+      }
+    }
+  }
+
+  const [data, dispatchData] = useReducer(ReducerFunction, {
+    submitQuestionaire: [],
+    supportComments: "",
+    rating: "",
+    projectManagerFeedback: "",
+    readyForPromotion: "0",
+    promotionComments: "",
+    isPerformer: "0",
+    promotionData: [],
+  });
+  useEffect(() => {
+    const levelOfApproval = departmentCompetency.some(
+      (item) => item.level_of_approval === 2 && item.is_active == 1
+    )
+      ? 2
+      : 1;
+    setLeadEntriesNew(levelOfApproval);
+  }, [departmentCompetency, leadEntriesNew]);
+  useEffect(() => {
+    const userEntry = departmentCompetency.find(
+      (entry) => entry.competency_id === +loggedUserId
+    );
+    console.log(userEntry);
+    setLeadEntries(userEntry?.level_of_approval);
+  }, [departmentCompetency, loggedUserId]);
+
+  let pageMessage =
+    "Please provide valid details for all highlighted fields before Saving.";
+
+  const [pageMessageValidation, setPageMessageValidation] = useState(true);
+  const [
+    commentstosupporttheaboveValidation,
+    setcommentstosupporttheaboveValidation,
+  ] = useState("");
+  const [box9Validation, setbox9Validation] = useState("");
+
+  const { ACTIONS, state, dispatch } = useContext(TeamReviewsContext);
+
+  const handleClose = () => {
+    setPageMessageValidation(true);
+    setcommentstosupporttheaboveValidation("");
+    setbox9Validation("");
+    dispatch({
+      type: ACTIONS.SUBMIT_EMPLOYEE_REVIEW_DISPLAY_SET,
+      payload: { setValue: false },
+    });
+  };
+
+  useEffect(() => {
+    if (state.selectedReporteeId != undefined) {
+      getData();
+      getsubmitData();
+    }
+  }, []);
+  const multiCompetencyData = (departmentData) => {
+    axios
+      .get(baseUrl + `/DashboardMS/PEP369/getsupervisorLevelData?empid`)
+      .then((response) => {});
+  };
+  const getReporteesCount2 = () => {
+    axios
+      .get(baseUrl + `/LayoutMS/hierarchy/getdirect?empId=${loggedUserId}`)
+      .then(function (response) {
+        setHasReportees(response.data);
+      });
+  };
+  const supervisorLevelData = () => {
+    axios
+      .get(
+        baseUrl +
+          `/DashboardMS/PEP369/getsupervisorLevelData?empid=${state.selectedReporteeId}&quarter=${state.setQuarterId}`
+      )
+      .then((response) => {
+        setSupervisorLevel(response.data);
+      });
+  };
+  console.log(dataCompRating);
+  useEffect(() => {
+    supervisorLevelData();
+    getApproveRejectLevel();
+    multiCompetencyData();
+    getReporteesCount2();
+  }, []);
+
+  const getApproveRejectLevel = () => {
+    axios
+      .get(
+        baseUrl +
+          `/DashboardMS/PEP369/getApproveRejectlevels?empid=${state.selectedReporteeId}`
+      )
+      .then((response) => {
+        setDepartmentData(response.data[0]?.emp_department_id);
+        setApproveRejectLevel(
+          response.data[0]?.emp_parent_id == loggedUserId
+            ? "L1"
+            : response.data[0]?.sup1_parent_id == loggedUserId
+            ? "L2"
+            : "unAssigned"
+        );
+      });
+  };
+  console.log(approveRejectLevel);
+  const competencyData = () => {
+    axios
+      .get(
+        baseUrl + `/DashboardMS/PEP369/getCompetencyLevel?empid=${loggedUserId}`
+      )
+      .then((response) => {
+        setCompetencyDatalength(response.data);
+
+        setCompetencyDataLevel(
+          response.data[0]?.level_of_approval == 1
+            ? 1
+            : response.data[0]?.level_of_approval == 2
+            ? 2
+            : ""
+        );
+
+        setNewCompetencyLevel(
+          response.data[0]?.level_of_approval == 1 ||
+            response.data[0]?.level_of_approval == undefined
+            ? "level1"
+            : "level2"
+        );
+      });
+  };
+
+  useEffect(() => {
+    competencyData();
+  }, []);
+
+  const getEmpData = () => {
+    axios
+      .get(
+        baseUrl +
+          `/DashboardMS/PEP369/employeeDetails?empid=${state.selectedReporteeId}&quarter=1`
+      )
+      .then((resp) => {
+        console.log(resp.data);
+        setEmployeeDetails(resp.data[0]?.department_id);
+        // competencyDepartment(resp.data[0]?.department_id);
+      });
+  };
+  console.log(pep369Questinary);
+  const getEmpData123 = () => {
+    axios
+      .get(
+        baseUrl +
+          `/ProfileMS/profile/employeeDetails?empId=${state.selectedReporteeId}`
+      )
+      .then((resp) => {
+        console.log(resp.data);
+        setCountryDetailsloggin(resp.data[0]?.countryId);
+      });
+  };
+  const questinaioryData = () => {
+    axios
+      .get(
+        baseUrl +
+          `/DashboardMS/PEP369/getQuestionaries?empid=${state.selectedReporteeId}&quarter=${state.setQuarterId}`
+      )
+      .then((resp) => {
+        console.log(resp.data, questionaryData);
+        // setpep369Questinary(resp.data);
+        const userEntry = resp.data.find((entry) => entry.review_level === 2);
+        console.log(userEntry);
+        setpep369Questinary(userEntry?.review_level);
+        setQuestionaryData(resp.data[0]?.id);
+        setLengthofFirstCase(resp.data.length);
+        setApprovalDiasable(resp.data);
+      });
+  };
+  console.log(approvalDiasable[0]?.review_level);
+  const handlenull = () => {};
+  const competencyDepartment = () => {
+    axios
+      .get(
+        baseUrl +
+          `/DashboardMS/PEP369/geCompetencyLeadLevel?dId=${employeeDetails}`
+
+        // `/DashboardMS/PEP369/getQuestionaries?empid=${state.selectedReporteeId}&quarter=${state.setQuarterId}`
+      )
+      .then((resp) => {
+        console.log();
+        setIsActiveLevel(resp.data[0]?.is_active);
+        setDepartmentCompetency(resp.data);
+        setDepartmentCompetencycountry(resp.data[0]?.country);
+      });
+  };
+  console.log(questionaryData);
+  useEffect(() => {
+    getEmpData();
+    getEmpData123();
+    questinaioryData();
+    competencyDepartment();
+  }, [employeeDetails]);
+
+  const levelOfApproval = departmentCompetency.some(
+    (item) =>
+      item.competency_id === +loggedUserId &&
+      item.level_of_approval == 2 &&
+      item.is_active == 1
+  );
+  useEffect(() => {
+    levelOfApproval
+      ? setLeadEntriesRating("competency")
+      : setLeadEntriesRating("supervisor");
+    console.log(levelOfApproval, loggedUserId, departmentCompetency);
+    // setLeadEntriesRating(levelOfApproval);
+  }, [levelOfApproval, leadEntriesRating]);
+
+  useEffect(() => {
+    getSupervisorRating();
+  }, []);
+  useEffect(() => {}, [dataRating, dataRatingSuper]);
+
+  const getSupervisorRating = () => {
+    axios({
+      method: "get",
+      url:
+        baseUrl +
+        `/DashboardMS/PEP369/getSupervisorRatingData?empid=${state.selectedReporteeId}&quarter=${state.setQuarterId}`,
+
+      headers: {
+        "content-Type": "application/json",
+      },
+    }).then((Response) => {
+      setSupervisorRating(Response.data);
+      setDataRatingSuper(Response.data[0]?.supervisior_rating);
+      setDataCompRating(Response.data[0]?.competency_rating);
+    });
+  };
+  console.log(promotion, promotion.length, promotion[0]?.promotionDate);
+
+  useEffect(() => {
+    // const activeCompetencies = [];
+    const activeCompetencies = departmentCompetency
+      ?.filter((item) => item.is_active === 1 && item.level_of_approval == 2)
+      .map((item) => item.competency_id);
+    setLeadIndividualLevel(activeCompetencies);
+    console.log(activeCompetencies, state.selectedReporteeId); // Output: [13046]
+    // if (activeCompetencies?.includes(state.selectedReporteeId)) {
+    //   setLeadIndividualLevel(true);
+    // }
+  }, [departmentCompetency]);
+  const handleApprove = () => {
+    console.log(approvalCooments.length);
+    console.log(commentValidation);
+    let ApproveData = {
+      employee_id: state.selectedReporteeId,
+      quarter: state.setQuarterId,
+      is_active: 1,
+      reject_approved_by: loggedUserId,
+      reject_approved_date: moment(now).format("YYYY-MM-DD"),
+      reject_approved_comments: approvalCooments,
+      id: supervisorLevel[0]?.id,
+      qId: questionaryData,
+      reviewer_id: loggedUserId,
+      modifiedDate: moment(now).format("YYYY-MM-DD"),
+      modified_by: loggedUserId,
+    };
+    if (
+      /^\s*$/.test(approvalCooments) ||
+      approvalCooments == [] ||
+      approvalCooments == undefined ||
+      approvalCooments == ""
+    ) {
+      setCoomentValidation(true);
+      setcommentstosupporttheaboveValidationNew("errMsgFld");
+    } else {
+      setApproveLoader(true);
+      setLoaderState(true);
+      axios({
+        method: "post",
+        url: baseUrl + `/DashboardMS/PEP369/saveApprovalUpdate`,
+        data: ApproveData,
+        headers: {
+          "content-Type": "application/json",
+        },
+      }).then((Response) => {
+        setApproveLoader(false);
+        setCoomentValidation(false);
+        setLoaderState(false);
+        handleClose();
+        // setTimeout(() => {
+        //   handleClose();
+        // }, 2000);
+      });
+    }
+  };
+  console.log(leadEntriesRating, leadEntriesNew, "------------New");
+  const handleReject = () => {
+    let rejectData = {
+      id: supervisorLevel[0]?.id,
+      qId: questionaryData,
+      employee_id: state.selectedReporteeId,
+      quarter: state.setQuarterId,
+      is_active: 0,
+      reviewerId: loggedUserId,
+      reject_approved_by: loggedUserId,
+      reject_approved_date: moment(now).format("YYYY-MM-DD"),
+      reject_approved_comments: approvalCooments,
+      employeeId: state.selectedReporteeId,
+      quarterId: state.setQuarterId,
+      modified_by: loggedUserId,
+    };
+
+    if (
+      /^\s*$/.test(approvalCooments) ||
+      approvalCooments == [] ||
+      approvalCooments == undefined ||
+      // approvalCooments.trim() === "" ||
+      approvalCooments == ""
+    ) {
+      setCoomentValidation(true);
+      setcommentstosupporttheaboveValidationNew("errMsgFld");
+
+      console.log("vaidation working");
+    } else {
+      console.log("vaidation not working");
+      setRejectLoader(true);
+      setLoaderStateReject(true);
+      axios({
+        method: "post",
+        url: baseUrl + `/DashboardMS/PEP369/saveRejectUpdate`,
+        data: rejectData,
+        headers: {
+          "content-Type": "application/json",
+        },
+      }).then((Response) => {
+        setRejectLoader(false);
+        setCoomentValidation(false);
+        setLoaderStateReject(false);
+
+        handleClose();
+        // setTimeout(() => {
+        //   handleClose();
+        // }, 2000);
+      });
+      // setCoomentValidation(true);
+    }
+  };
+  console.log(
+    dataRatingSuper,
+    supervisorLevel.length,
+    supervisorLevel[0]?.supervisior_rating != 0,
+    dataCompRating
+  );
+
+  // supervisorLevel.length == 0 ||
+  //           supervisorLevel[0]?.supervisior_rating != 0) &&
+  //         dataCompRating
+  console.log(supervisorValidation);
+  console.log(approvalDiasable[0]?.id);
+  useEffect(() => {}, [dataRatingSuper, dataCompRating]);
+  console.log(state, state.reporteesData.length);
+  console.log(approvalDiasable[0]?.id);
+  console.log(leadEntriesNew);
+  console.log(leadEntriesRating);
+  console.log(dataRatingSuper);
+  console.log(data.isPerformer);
+  useEffect(() => {}, [leadEntriesNew, leadEntriesRating]);
+  const NewSubmit = () => {
+    console.log(leadEntriesNew);
+    console.log(leadEntriesRating);
+    console.log(dataRatingSuper);
+    console.log(data.isPerformer);
+    let samepladataSupComp = {
+      id: supervisorLevel[0]?.id,
+      employee_id: state.selectedReporteeId,
+      supervisior_rating: dataRatingSuper,
+      competency_rating: dataCompRating,
+      created_by:
+        supervisorLevel[0]?.id == undefined
+          ? loggedUserId
+          : supervisorRating[0]?.created_by,
+      modified_by: loggedUserId,
+      created_on:
+        supervisorLevel[0]?.id == undefined
+          ? moment(now).format("YYYY-MM-DD")
+          : moment(supervisorRating[0]?.created_on).format("YYYY-MM-DD"),
+      modified_on: moment(now).format("YYYY-MM-DD"),
+      quarter: state.setQuarterId,
+      support_comments: data.supportComments,
+      is_active: 1,
+      reject_approved_by: loggedUserId,
+      reject_approved_date: moment(now).format("YYYY-MM-DD"),
+      reject_approved_comments: approvalCooments,
+      qId: questionaryData,
+      employeeId: state.selectedReporteeId,
+      quarterId: state.setQuarterId,
+      notifiedToHr: 0,
+      isPerformer: 0,
+      promotion: data.readyForPromotion,
+      promotionComments: data.promotionComments,
+      supportComments: data.supportComments,
+      reviewerId: loggedUserId,
+      reviewLevel: 1,
+      createdDate: moment(now).format("YYYY-MM-DD"),
+      modifiedDate: moment(now).format("YYYY-MM-DD"),
+      isActive: 1,
+      is_review_by_cl: 0,
+      cl_id: 15471,
+
+      cl_comment: "",
+    };
+    let sampleDataSup = {
+      type: "sup",
+      id: supervisorLevel[0]?.id,
+      employee_id: state.selectedReporteeId,
+      supervisior_rating: dataRatingSuper,
+      competency_rating: 0,
+      isPerformer: 0,
+      created_by: loggedUserId,
+      modified_by: loggedUserId,
+      created_on: moment(now).format("YYYY-MM-DD"),
+      modified_on: moment(now).format("YYYY-MM-DD"),
+      quarter: state.setQuarterId,
+      support_comments: data.supportComments,
+      employeeId: state.selectedReporteeId,
+      quarterId: state.setQuarterId,
+      notifiedToHr: 0,
+
+      promotion: data.readyForPromotion,
+      promotionComments: data.promotionComments,
+      supportComments: data.supportComments,
+      reviewerId: loggedUserId,
+      reviewLevel: 1,
+      createdDate: moment(new Date()).format("YYYY-MM-DD hh:mm:ss"),
+      modifiedDate: moment(new Date()).format("YYYY-MM-DD hh:mm:ss"),
+      is_review_by_cl: 0,
+      cl_id: loggedUserId,
+      cl_comment: "",
+    };
+    let sampleDataComp = {
+      type: "cmp",
+      id: supervisorLevel[0]?.id,
+      employee_id: state.selectedReporteeId,
+      supervisior_rating: supervisorLevel[0]?.supervisior_rating,
+      competency_rating: dataCompRating,
+      created_by: loggedUserId,
+      isPerformer: 0,
+      modified_by: loggedUserId,
+      support_comments: data.supportComments,
+      created_on: moment(now).format("YYYY-MM-DD"),
+      modified_on: moment(now).format("YYYY-MM-DD"),
+      quarter: state.setQuarterId,
+      employeeId: state.selectedReporteeId,
+      quarterId: state.setQuarterId,
+      notifiedToHr: 0,
+
+      // promotion: data.readyForPromotion,
+      // promotionComments: data.promotionComments,
+      promotion: data.submitQuestionaire.promotion,
+      promotionComments: data.submitQuestionaire.promotionComments,
+      supportComments: data.supportComments,
+      reviewerId: loggedUserId,
+      reviewLevel: 1,
+      createdDate: moment(now).format("YYYY-MM-DD"),
+      modifiedDate: moment(now).format("YYYY-MM-DD"),
+      isActive: 1,
+      is_review_by_cl: 0,
+      cl_id: 15471,
+      cl_comment: "",
+    };
+
+    console.log(
+      dataRatingSuper,
+      dataCompRating,
+      leadEntriesRating,
+      leadEntriesNew
+    );
+
+    if (
+      leadEntriesRating == "supervisor" &&
+      leadEntriesNew == 1 &&
+      dataRatingSuper == undefined &&
+      dataCompRating == undefined
+    ) {
+      setcompandSuperValidation(true);
+      setTimeout(() => {
+        setcompandSuperValidation(false);
+      }, 2000);
+    } else if (
+      leadEntriesRating == "supervisor" &&
+      leadEntriesNew == 1 &&
+      dataRatingSuper == undefined &&
+      dataCompRating != undefined
+    ) {
+      setsupervisorValidation(true);
+      setTimeout(() => {
+        setsupervisorValidation(false);
+      }, 2000);
+    } else if (
+      leadEntriesRating == "supervisor" &&
+      leadEntriesNew == 1 &&
+      dataCompRating == undefined &&
+      dataRatingSuper != undefined
+    ) {
+      setCompetencyValidation(true);
+      setTimeout(() => {
+        setCompetencyValidation(false);
+      }, 2000);
+    } else if (
+      leadEntriesRating == "competency" &&
+      leadEntriesNew == 2 &&
+      state?.reporteesData?.length < 0 &&
+      dataRatingSuper == undefined
+      // && supervisorLevel[0]?.supervisior_rating == undefined
+    ) {
+      setInduvidaualAccess(true);
+      setTimeout(() => {
+        setInduvidaualAccess(false);
+      }, 2000);
+    }
+
+    // if (
+    //   (dataRatingSuper == 0 || dataRatingSuper == undefined) &&
+    //   (dataCompRating == 0 || dataCompRating == undefined)
+    // ) {
+    //   setcompandSuperValidation(true);
+    //   setTimeout(() => {
+    //     setcompandSuperValidation(false);
+    //   }, 2000);
+    // } else if (dataRatingSuper == 0 || dataRatingSuper == undefined) {
+    //   setsupervisorValidation(true);
+    //   setTimeout(() => {
+    //     setsupervisorValidation(false);
+    //   }, 2000);
+    // } else if (
+    //   leadEntriesNew != 2 &&
+    //   leadEntriesRating != "supervisor" &&
+    //   dataCompRating == undefined
+    // ) {
+    //   setCompetencyValidation(true);
+    //   setTimeout(() => {
+    //     setCompetencyValidation(false);
+    //   }, 2000);
+    // }
+    else if (
+      /^\s*$/.test(data.supportComments) ||
+      data.supportComments == " " ||
+      data.supportComments == "" ||
+      data.supportComments?.length == 0 ||
+      data.supportComments == undefined
+    ) {
+      setPageMessageValidation(false);
+      setcommentstosupporttheaboveValidation("errMsgFld");
+      setTimeout(() => {
+        setPageMessageValidation(true);
+        setcommentstosupporttheaboveValidation("");
+      }, 2000);
+    } else {
+      setLoader(true);
+      axios({
+        method: "post",
+        url:
+          CountryDetailsloggin != departmentCompetency[0]?.country
+            ? baseUrl +
+              `/DashboardMS/PEP369/saveNineBoxRatingSupervisorAndCompetency`
+            : leadEntriesNew == "1" && leadEntriesRating == "supervisor"
+            ? baseUrl +
+              `/DashboardMS/PEP369/saveNineBoxRatingSupervisorAndCompetency`
+            : leadEntriesNew == 2 && leadEntriesRating == "supervisor"
+            ? baseUrl + `/DashboardMS/PEP369/saveNineBoxRating`
+            : leadEntriesNew == 2 &&
+              leadEntriesRating == "competency" &&
+              approveRejectLevel == "L1"
+            ? baseUrl +
+              `/DashboardMS/PEP369/saveNineBoxRatingSupervisorAndCompetency`
+            : leadEntriesNew == 2 && leadEntriesRating == "competency"
+            ? baseUrl + `/DashboardMS/PEP369/saveNineBoxRating`
+            : "",
+        // baseUrl + `/DashboardMS/PEP369/saveNineBoxRatingSupervisorAndCompetency`,
+        data:
+          CountryDetailsloggin != departmentCompetency[0]?.country
+            ? samepladataSupComp
+            : leadEntriesNew == "1" && leadEntriesRating == "supervisor"
+            ? samepladataSupComp
+            : leadEntriesNew == 2 && leadEntriesRating == "supervisor"
+            ? sampleDataSup
+            : leadEntriesNew == 2 &&
+              leadEntriesRating == "competency" &&
+              approveRejectLevel == "L1"
+            ? samepladataSupComp
+            : leadEntriesNew == 2 && leadEntriesRating == "competency"
+            ? sampleDataComp
+            : "",
+        // samepladataSupComp,
+
+        //   (leadEntriesNew == 1 &&
+        //     leadEntriesRating == "supervisor" &&
+        //     lengthofFirstCase >= 0) ||
+        //   (leadEntriesNew == 2 &&
+        //     leadEntriesRating == "supervisor" &&
+        //     lengthofFirstCase >= 0)
+        //     ? `http://localhost:8094/DashboardMS/PEP369/saveNineBoxRating`
+        //     : (leadEntriesNew == 1 &&
+        //         leadEntriesRating == "competency" &&
+        //         lengthofFirstCase >= 0) ||
+        //       (leadEntriesNew == 2 &&
+        //         leadEntriesRating == "competency" &&
+        //         lengthofFirstCase >= 0)
+        //     ? `http://localhost:8094/DashboardMS/PEP369/saveNineBoxRating`
+        //     : baseUrl +
+        //       `/DashboardMS/PEP369/saveNineBoxRatingSupervisorAndCompetency`,
+
+        // data:
+        //   (leadEntriesNew == 1 &&
+        //     leadEntriesRating == "supervisor" &&
+        //     lengthofFirstCase >= 0) ||
+        //   (leadEntriesNew == 2 &&
+        //     leadEntriesRating == "supervisor" &&
+        //     lengthofFirstCase >= 0)
+        //     ? sampleDataSup
+        //     : (leadEntriesNew == 1 &&
+        //         leadEntriesRating == "competency" &&
+        //         lengthofFirstCase >= 0) ||
+        //       (leadEntriesNew == 2 &&
+        //         leadEntriesRating == "competency" &&
+        //         lengthofFirstCase >= 0)
+        //     ? sampleDataComp
+        //     : samepladataSupComp,
+
+        headers: {
+          "content-Type": "application/json",
+        },
+      }).then((Response) => {
+        const data = Response.data;
+        setLoader(false);
+
+        setNineBoxRating(true);
+        getSupervisorRating();
+        refreshMain();
+        setsuccessMsg(true);
+        setSupervisorMsg(true);
+
+        setTimeout(() => {
+          handleClose();
+        }, 2000);
+      });
+    }
+  };
+  const handleApproverClose = () => {
+    setOpenApprove(false);
+  };
+  const handleCloseApprove = () => {
+    setApprovePop(false);
+  };
+  const handleCloseReject = () => {
+    setRejectPop(false);
+  };
+  function getData() {
+    axios
+      .get(
+        baseUrl +
+          `/DashboardMS/PEP369/getPepPPlan369SubmitQuestionaireByEmployeeIdAndQuarterId?employeeId=${state.selectedReporteeId}&quarterId=${state.setQuarterId}`
+      )
+      .then((responseData) => {
+        var length = responseData.data.length;
+        var data = responseData.data;
+        var dataRecord = length === 0 ? data : data[length - 1];
+        dataRecord.reviewerId === loggedUserId
+          ? setreviewLevel(length)
+          : setreviewLevel(length + 1);
+        dataRecord.reviewerId === loggedUserId || submitEmpReviewDisable === 2
+          ? setalreadySubmitted(true)
+          : setalreadySubmitted(false);
+        submitEmpReviewDisable === 2
+          ? setComponentDisabled(true)
+          : setComponentDisabled(false);
+
+        dispatchData({
+          type: "TYPE.SUBMIT_QUESTIONAIRE",
+          payload: { setObject: dataRecord },
+        });
+        dispatchData({
+          type: "TYPE.IS_PERFORMER",
+          payload: { setValue: dataRecord.isPerformer },
+        });
+        dispatchData({
+          type: "TYPE.RATING",
+          payload: { setValue: dataRecord.rating },
+        });
+        dispatchData({
+          type: "TYPE.COMMENTS_TO_SUPPORT",
+          payload: { setValue: dataRecord.supportComments },
+        });
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  }
+
+  function getsubmitData() {
+    axios
+      .get(
+        baseUrl +
+          `/DashboardMS/PEP369/getcheckList?empId=${state.selectedReporteeId}`
+      )
+      .then((responseData) => {
+        const depatmentIds = [
+          42, 48, 49, 80, 96, 98, 2217, 2218, 2221, 2222, 2245, 2248, 2249,
+          2252, 2253, 2264, 2266, 2199,
+        ];
+        const departmentId = responseData.data.department_id;
+
+        const calculatedHours = depatmentIds.includes(Number(departmentId))
+          ? 20
+          : 40;
+
+        setTotalHours(calculatedHours);
+        dispatch({
+          type: ACTIONS.CHECK_LIST,
+          payload: { setObject: responseData.data },
+        });
+        if (
+          responseData.data.learninghrs >= calculatedHours &&
+          responseData.data.ComplianceCourses === "100.0" &&
+          responseData.data.cdp === "100.0"
+        ) {
+          setPromotionReady(false);
+        }
+      })
+
+      .catch((error) => {});
+
+    axios
+      .get(
+        baseUrl +
+          `/DashboardMS/PEP369/getSkillCount?empId=${state.selectedReporteeId}`
+      )
+      .then((responseData) => {
+        dispatch({
+          type: ACTIONS.SKILL_COUNT,
+          payload: { setValue: responseData.data },
+        });
+      });
+    let goalsset = [];
+    axios
+      .get(
+        baseUrl +
+          `/DashboardMS/PEP369/getpromotion?empId=${state.selectedReporteeId}`
+      )
+      .then((responseData) => {
+        responseData.data.forEach((e) => {
+          let empobj = {
+            id: e.id,
+            renewalDate: e.joinDate,
+            designation: e.designation,
+            promotion: e.promotion,
+            promotionComments: e.promotionComments,
+            promotionDate: e.promotionDate,
+          };
+          goalsset.push(empobj);
+        });
+
+        setPromotion(goalsset);
+        setPromotionData(responseData.data);
+        dispatchData({
+          type: TYPE.PROMOTION_DATA,
+          payload: { setValue: responseData.data },
+        });
+      });
+    axios
+      .get(
+        baseUrl +
+          `/DashboardMS/PEP369/getPep369Feedback?empId=${state.selectedReporteeId}&quarter_id=${state.setQuarterId}`
+      )
+      .then((responseData) => {
+        dispatch({
+          type: ACTIONS.MANAGER_FEEDBACK,
+          payload: { setValue: responseData.data.feedBack },
+        });
+      });
+  }
+
+  function submit() {
+    setcommentstosupporttheaboveValidation("");
+    setbox9Validation("");
+    const sampleData = {
+      id:
+        data.submitQuestionaire.reviewerId === loggedUserId
+          ? data.submitQuestionaire.id
+          : null,
+      employeeId: state.selectedReporteeId,
+      quarterId: state.setQuarterId,
+      notifiedToHr: data.notifiedToHr,
+      rating: data.rating,
+      isPerformer: data.isPerformer,
+      promotion: data.readyForPromotion,
+      promotionComments: data.promotionComments,
+      supportComments: data.supportComments,
+      reviewerId: loggedUserId,
+      reviewLevel: reviewLevel,
+      createdDate: moment(new Date()).format("YYYY-MM-DD hh:mm:ss"),
+      modifiedDate: moment(new Date()).format("YYYY-MM-DD hh:mm:ss"),
+      isActive: 1,
+      is_review_by_cl: 0,
+    };
+    if (
+      data.supportComments == "" ||
+      data.supportComments == undefined ||
+      data.rating == "" ||
+      data.rating == undefined ||
+      data.rating == 0
+    ) {
+      setPageMessageValidation(false);
+      if (data.supportComments == "" || data.supportComments == undefined) {
+        setcommentstosupporttheaboveValidation("errMsgFld");
+      }
+      if (data.rating == "" || data.rating == undefined || data.rating == 0) {
+        setbox9Validation("errMsgFld");
+      }
+    } else {
+      setcommentstosupporttheaboveValidation("");
+      setbox9Validation("");
+      setPageMessageValidation(true);
+
+      axios({
+        method: "post",
+        url: baseUrl + `/DashboardMS/PEP369/savePepPPlan369SubmitQuestionaire`,
+        data: sampleData,
+        headers: {
+          "content-Type": "application/json",
+        },
+      })
+        .then((Response) => {
+          refreshMain();
+          setsuccessMsg(true);
+          setTimeout(() => {
+            handleClose();
+          }, 2000);
+        })
+        .catch((error) => console.log(error));
+    }
+  }
+
+  /// function added to handle rating change   ---abhi
+
+  const handleRatingChange = (newRating) => {
+    if (parseInt(supervisorId) !== parseInt(localStorage.getItem("resId"))) {
+      // set state true for opening pop-up
+      setnewRatingDbox(newRating);
+      setOpenApprove(true);
+      // inside that pop-up onclick event to set this global state
+    } else {
+      dispatchData({
+        type: "TYPE.RATING",
+        payload: { setValue: newRating },
+      });
+    }
+  };
+
+  return (
+    <div className="col-md-12 p0 nineboxSupSubmit">
+      <div>
+        <Dialog
+          open={state.SubmitEmployeeReviewDisplay}
+          onClose={handleClose}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+          fullWidth={true}
+          maxWidth={"lg"}
+        >
+          <div className="" style={{ padding: "0px" }}>
+            <DialogTitle
+              id="alert-dialog-title"
+              className="dialogTitle border-bottom"
+            >
+              <Grid
+                container
+                direction="row"
+                justify="space-between"
+                alignItems="center"
+              >
+                {"Performance Submission Questionaire"}
+                <button
+                  style={{ marginLeft: "auto" }}
+                  onClick={handleClose}
+                  className="btn-close "
+                >
+                  <ClearIcon />
+                </button>
+              </Grid>
+            </DialogTitle>
+          </div>
+          {compandSuperValidation && (
+            <div className="col-md-12 ">
+              <div className="errMsg">
+                {" "}
+                <p>
+                  <WarningIcon />
+                  {"Please Provide Supervisor and Competency rating"}
+                </p>
+              </div>
+            </div>
+          )}
+          {induvidaualAccess && (
+            <div
+              className="col-md-12 "
+              style={{ width: "97%", marginLeft: "12px" }}
+            >
+              <div className="errMsg">
+                {" "}
+                <p>
+                  <WarningIcon />
+                  {"Competency  cannot provide rating before Supervisor"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {competencyValidation && (
+            <div className="col-md-12 ">
+              <div className="errMsg">
+                {" "}
+                <p>
+                  <WarningIcon />
+                  {"Please Provide Competency rating"}
+                </p>
+              </div>
+            </div>
+          )}
+          {supervisorValidation && (
+            <div className="col-md-12 ">
+              <div className="errMsg">
+                {" "}
+                <p>
+                  <WarningIcon />
+                  {"Please Provide Supervisor rating"}
+                </p>
+              </div>
+            </div>
+          )}
+          {pageMessageValidation === false ||
+          commentstosupporttheaboveValidation.includes("errMsgFld") ? (
+            <div className="col-md-12 ">
+              <div className="errMsg">
+                {" "}
+                <p>
+                  <WarningIcon />
+                  {pageMessage}
+                </p>
+              </div>
+            </div>
+          ) : (
+            ""
+          )}
+
+          {alreadySubmitted && (
+            <div className="col-md-12 mt-1">
+              {" "}
+              <p className="fa fa-info-circle successMsgDiv">
+                Rating is submitted
+              </p>
+            </div>
+          )}
+          {supervisorLevel[0]?.competency_rating == 0 && supervosrMsg ? (
+            <div className="col-md-12 mt-1">
+              {" "}
+              <p className="fa fa-info-circle successMsgDiv">
+                Rating is submitted
+              </p>
+            </div>
+          ) : (
+            ""
+          )}
+
+          <DialogContent>
+            <div
+              class="col-md-12 p0 nineboxSubmitPopup"
+              // style={{ pointerEvents: componentDisabled ? "none" : "" }}
+            >
+              <div class="col-md-12">
+                <div
+                  class="col-md-8 nineboxSupSubmit mb-2 p0"
+                  style={{
+                    border: box9Validation.includes("errMsgFld")
+                      ? "1px solid #ff0000"
+                      : "",
+                  }}
+                >
+                  <table
+                    class="table table-striped skillgrd"
+                    style={{
+                      border: "5px solid #dfdfdf",
+                      marginTop: "0px !important",
+                      height: "261px",
+                      margin: "0px !important",
+                    }}
+                  >
+                    <thead>
+                      <tr className="potentialH" style={{ padding: "0px" }}>
+                        <th
+                          colspan="5"
+                          class="text-center titlehgt"
+                          style={{ backgroundColor: "#e8e8e8", padding: "0px" }}
+                        >
+                          <span>Potential</span>
+                        </th>
+                      </tr>
+                      <tr
+                        class="titlehgt"
+                        style={{ backgroundColor: "#e8e8e8" }}
+                      >
+                        <th style={{ background: "#2b83b1" }}>
+                          <span></span>
+                        </th>
+                        <th>
+                          <span></span>
+                        </th>
+                        <th class="text-center titleclorxy">
+                          <span>Low/Limited</span>
+                        </th>
+                        <th class="text-center titleclorxy">
+                          <span>Medium/Can be developed</span>
+                        </th>
+                        <th class="text-center titleclorxy">
+                          <span>High/Seeks new challenge</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td rowSpan={3} class="rotate">
+                          <div>Performance</div>
+                        </td>
+                        {/* </tr> */}
+                        {/* <tr class="hgtrow"> */}
+                        <td class="text-center titleclorxy">
+                          <b>High</b>
+                          <br></br>
+                          <b>Above Target</b>
+                        </td>
+                        <td
+                          className={`${
+                            supervisorLevel[0]?.nine_box_rating == 7 &&
+                            // competencyDatalength.length > 0 &&
+                            "selectedRating"
+                          }  ratingNo`}
+                          rating="7"
+                          value="7"
+                          style={{ border: "3px solid #e3e3e3" }}
+                          onClick={() => {
+                            // handleRatingChange("7");
+                          }}
+                        >
+                          <div
+                            className="nineboxRatings"
+                            style={{ textAlign: "center" }}
+                          >
+                            Key contributor
+                            <span class="numbck">7</span>
+                          </div>
+                        </td>
+                        <td
+                          className={`${
+                            supervisorLevel[0]?.nine_box_rating == 8 &&
+                            // competencyDatalength.length > 0 &&
+                            "selectedRating"
+                          }  ratingNo`}
+                          rating="8"
+                          value="8"
+                          style={{ border: "3px solid #e3e3e3" }}
+                          onClick={() => {
+                            // handleRatingChange("8");
+                          }}
+                        >
+                          <div
+                            className="nineboxRatings"
+                            style={{ textAlign: "center" }}
+                            value="8"
+                          >
+                            Strong performer
+                            <span class="numbck">8</span>
+                          </div>
+                        </td>
+                        <td
+                          className={`${
+                            supervisorLevel[0]?.nine_box_rating == 9 &&
+                            // competencyDatalength.length > 0 &&
+                            "selectedRating"
+                          }  ratingNo`}
+                          rating="9"
+                          onClick={() => {
+                            // handleRatingChange("9");
+                          }}
+                        >
+                          <div
+                            className="nineboxRatings"
+                            style={{ textAlign: "center" }}
+                          >
+                            Star performer
+                            <span class="numbck">9</span>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr class="hgtrow">
+                        <td
+                          class="text-center titleclorxy"
+                          style={{ padding: "0px" }}
+                        >
+                          <b style={{ color: "#545454" }}>Medium </b>
+                          <br></br>
+                          <b style={{ color: "#545454" }}> On target</b>
+                        </td>
+                        <td
+                          className={`${
+                            supervisorLevel[0]?.nine_box_rating == 4 &&
+                            // competencyDatalength.length > 0 &&
+                            "selectedRating"
+                          }  ratingNo`}
+                          rating="4"
+                          onClick={() => {
+                            // handleRatingChange("4");
+                          }}
+                        >
+                          <div
+                            className="nineboxRatings"
+                            style={{ textAlign: "center" }}
+                          >
+                            Acceptable performer
+                            <span class="numbck">4</span>
+                          </div>
+                        </td>
+                        <td
+                          className={`${
+                            supervisorLevel[0]?.nine_box_rating == 5 &&
+                            // competencyDatalength.length > 0 &&
+                            "selectedRating"
+                          }  ratingNo`}
+                          rating="5"
+                          style={{ border: "3px solid #e3e3e3" }}
+                          onClick={() => {
+                            // handleRatingChange("5");
+                          }}
+                        >
+                          <div
+                            class="nineboxRatings"
+                            style={{ textAlign: "center" }}
+                          >
+                            Core performer
+                            <span class="numbck">5</span>
+                          </div>
+                        </td>
+                        <td
+                          className={`${
+                            supervisorLevel[0]?.nine_box_rating == 6 &&
+                            // competencyDatalength.length > 0 &&
+                            "selectedRating"
+                          }  ratingNo`}
+                          rating="6"
+                          onClick={() => {
+                            // handleRatingChange("6");
+                          }}
+                        >
+                          <div
+                            className="nineboxRatings"
+                            style={{ textAlign: "center" }}
+                          >
+                            Rising star
+                            <span class="numbck">6</span>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr class="hgtrow">
+                        <td class="text-center titleclorxy">
+                          <b>Low </b>
+                          <br></br>
+                          <b>Below Target</b>
+                        </td>
+                        <td
+                          className={`${
+                            supervisorLevel[0]?.nine_box_rating == 1 &&
+                            // competencyDatalength.length > 0 &&
+                            "selectedRating"
+                          }  ratingNo`}
+                          rating="1"
+                          style={{ border: "3px solid #e3e3e3" }}
+                          onClick={() => {
+                            // handleRatingChange("1");
+                          }}
+                        >
+                          <div
+                            className="nineboxRatings"
+                            style={{ textAlign: "center" }}
+                          >
+                            Unsatisfactory performer
+                            <span class="numbck">1</span>
+                          </div>
+                        </td>
+                        <td
+                          className={`${
+                            supervisorLevel[0]?.nine_box_rating == 2 &&
+                            // competencyDatalength.length > 0 &&
+                            "selectedRating"
+                          }  ratingNo`}
+                          rating="2"
+                          style={{ border: "3px solid #e3e3e3" }}
+                          onClick={() => {
+                            // handleRatingChange("2");
+                          }}
+                        >
+                          <div
+                            className="nineboxRatings"
+                            style={{ textAlign: "center" }}
+                          >
+                            Marginal performer
+                            <span class="numbck">2</span>
+                          </div>
+                        </td>
+                        <td
+                          className={`${
+                            supervisorLevel[0]?.nine_box_rating == 3 &&
+                            // competencyDatalength.length > 0 &&
+                            "selectedRating"
+                          }  ratingNo`}
+                          rating="3"
+                          onClick={() => {
+                            // handleRatingChange("3");
+                          }}
+                        >
+                          <div
+                            className="nineboxRatings"
+                            style={{ textAlign: "center" }}
+                          >
+                            Emerging star
+                            <span class="numbck">3</span>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="col-md-4 pr0" style={{ paddingLeft: "5px" }}>
+                  <div
+                    class="col-md-12 p0 promptsSubPrnt"
+                    style={{
+                      background: "rgb(236, 236, 236)",
+                      border: "1px solid #ddd",
+                      "margin-bottom": "0px;",
+                      overflow: "auto",
+
+                      // height: "86px",
+                      height: state.skillCount.skillCount !== 0 ? "86px" : "",
+                    }}
+                  >
+                    <div
+                      class="panelHd p0"
+                      style={{ position: "sticky", top: "0", zIndex: "3" }}
+                    >
+                      <span>Prompts for Discussion</span>
+                    </div>
+                    {/* <ul
+												  className="prompts mb0"
+												  style="list-style-type:circle;"
+											  > */}
+                    <ul
+                      className="prompts mb0"
+                      style={{
+                        paddingLeft: "22px",
+                        fontSize: "11px",
+                        maxHeight: "70px",
+                        color: "#545454",
+                      }}
+                    >
+                      <li style={{ listStyleType: "circle" }}>
+                        {" "}
+                        Actions from previous Check in
+                      </li>
+                      <li style={{ listStyleType: "circle" }}>
+                        {" "}
+                        PO’s &amp; PDO’s
+                      </li>
+                      <li style={{ listStyleType: "circle" }}>
+                        {" "}
+                        Feedback and Identifying strengths
+                      </li>
+                      <li style={{ listStyleType: "circle" }}>
+                        Set Priorities
+                      </li>
+                      <li style={{ listStyleType: "circle" }}>
+                        Quality and time check ins on 30-60-90
+                      </li>
+                      <li style={{ listStyleType: "circle" }}>
+                        Happiness and engagement scores
+                      </li>
+                      <li style={{ listStyleType: "circle" }}>
+                        Learning scores card
+                      </li>
+                      <li style={{ listStyleType: "circle" }}>
+                        Issues or Concerns
+                      </li>
+                      <li style={{ listStyleType: "circle" }}>
+                        Help or Support
+                      </li>
+                    </ul>
+                  </div>
+
+                  {state.skillCount.skillCount !== 0 ? (
+                    <div
+                      className="col-md-12 p0 skillform"
+                      style={{
+                        marginTop: "9px",
+                      }}
+                    >
+                      <div
+                        className="panelHd"
+                        style={{ border: "1px solid #e3e3e3" }}
+                      >
+                        <span>Skill Matrix</span>
+                      </div>
+                      <div class="col-xs-12 mb5 p0">
+                        <div
+                          class="ui-state-error ui-corner-all"
+                          style={{ padding: "2px" }}
+                        >
+                          <span
+                            class="ui-icon ui-icon-alert"
+                            style={{ floatLeft: "margin-right:0.3em" }}
+                          ></span>
+                          <strong>
+                            Few skills are yet to be approved for the employee.
+                            Please{" "}
+                            <b>
+                              <a href="/approvals" target="_new">
+                                click here
+                              </a>
+                            </b>{" "}
+                            to view pending skill requests.
+                          </strong>
+                          &nbsp;
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    ""
+                  )}
+                  {/* <h1>
+                    {leadEntriesRating +
+                      leadEntriesNew +
+                      supervisorLevel[0]?.is_active +
+                      supervisorLevel[0]?.nine_box_rating +
+                      approveRejectLevel}
+                  </h1> */}
+                  <div
+                    class="col-md-12 nineboxSupSubmit-second p0"
+                    style={{
+                      border: box9Validation.includes("errMsgFld")
+                        ? "1px solid #ff0000"
+                        : "",
+                    }}
+                  >
+                    <table class="table table-striped skillgrd">
+                      <thead>
+                        <tr
+                          class="titlehgt"
+                          style={{ backgroundColor: "#e8e8e8" }}
+                        >
+                          <th
+                            style={{ fontSize: "10px" }}
+                            class="text-center titleclorxy"
+                          >
+                            <span>9-box grid Rating</span>
+                          </th>
+                          <th
+                            style={{ fontSize: "10px" }}
+                            class="text-center titleclorxy"
+                          >
+                            <span>Below Expectation</span>
+                          </th>
+                          <th
+                            style={{ fontSize: "10px" }}
+                            class="text-center titleclorxy"
+                          >
+                            <span>Meet Expectation</span>
+                          </th>
+                          <th
+                            style={{ fontSize: "10px" }}
+                            class="text-center titleclorxy"
+                          >
+                            <span>Above Expectation</span>
+                          </th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr class="titlehgt">
+                          <td class="text-center " style={{ minWidth: "96px" }}>
+                            <b style={{ fontSize: "10px" }}>
+                              Supervisor Rating
+                              {/* {leadEntriesRating + "," + leadEntriesNew} */}
+                            </b>
+                          </td>
+                          <td
+                            style={{
+                              border: "3px solid #e3e3e3",
+                              cursor:
+                                isActiveLevel == 0 && approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    approveRejectLevel == "unAssigned"
+                                  ? "not-allowed"
+                                  : approvalDiasable[0]?.review_level == 2
+                                  ? "not-allowed"
+                                  : (approvalDiasable[0]?.review_level == 2 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level == 0 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level ==
+                                      undefined &&
+                                      approveRejectLevel == "L2")
+                                  ? "not-allowed"
+                                  : supervisorLevel[0]?.is_active != 0 &&
+                                    supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                    approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : hasReportees.length == 0 &&
+                                    leadEntriesNew == 1 &&
+                                    leadEntriesRating == "supervisor"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    leadEntriesRating == "supervisor"
+                                  ? "pointer"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "supervisor"
+                                  ? "pointer"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "competency" &&
+                                    approveRejectLevel == "L1"
+                                  ? "pointer"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "competency"
+                                  ? "not-allowed"
+                                  : "not-allowed",
+                            }}
+                            className={`${
+                              dataRatingSuper == 1 ? "selectedRating" : ""
+                            }  ratingNo`}
+                            rating="1"
+                            value="1"
+                            onClick={() => {
+                              isActiveLevel == 0 && approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  approveRejectLevel == "unAssigned"
+                                ? handlenull()
+                                : approvalDiasable[0]?.review_level == 2
+                                ? handlenull()
+                                : (approvalDiasable[0]?.review_level == 2 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level == 0 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level ==
+                                    undefined &&
+                                    approveRejectLevel == "L2")
+                                ? handlenull()
+                                : supervisorLevel[0]?.is_active != 0 &&
+                                  supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                  approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  leadEntriesRating == "supervisor" &&
+                                  hasReportees == 0
+                                ? handlenull()
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "competency" &&
+                                  approveRejectLevel == "L1"
+                                ? setDataRatingSuper("1")
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "competency"
+                                ? handlenull()
+                                : setDataRatingSuper("1");
+                            }}
+                            // onClick={() => {
+                            //   approveRejectLevel == "L2" ||
+                            //   (leadEntriesNew == 1 &&
+                            //     leadEntriesRating == "competency") ||
+                            //   (leadEntriesNew == 2 &&
+                            //     leadEntriesRating == "competency")
+                            //     ? handlenull()
+                            //     : setDataRatingSuper("1");
+                            // }}
+                          >
+                            <div
+                              className="nineboxRatings"
+                              style={{ textAlign: "center" }}
+                            >
+                              {/* Key contributor */}
+                              <span class="numbck">1</span>
+                            </div>
+                          </td>
+                          <td
+                            style={{
+                              cursor:
+                                isActiveLevel == 0 && approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    approveRejectLevel == "unAssigned"
+                                  ? "not-allowed"
+                                  : approvalDiasable[0]?.review_level == 2
+                                  ? "not-allowed"
+                                  : (approvalDiasable[0]?.review_level == 2 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level == 0 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level ==
+                                      undefined &&
+                                      approveRejectLevel == "L2")
+                                  ? "not-allowed"
+                                  : supervisorLevel[0]?.is_active != 0 &&
+                                    supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                    approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    leadEntriesRating == "supervisor" &&
+                                    hasReportees == 0
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "competency" &&
+                                    approveRejectLevel == "L1"
+                                  ? "pointer"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "competency"
+                                  ? "not-allowed"
+                                  : "pointer",
+                              border: "3px solid #e4e4e4",
+                              // cursor:
+                              //   approveRejectLevel == "L2" ||
+                              //   (leadEntriesNew == 1 &&
+                              //     leadEntriesRating == "competency") ||
+                              //   (leadEntriesNew == 2 &&
+                              //     leadEntriesRating == "competency")
+                              //     ? "not-allowed"
+                              //     : "pointer",
+                            }}
+                            className={`${
+                              dataRatingSuper == 2 ? "selectedRating" : ""
+                            }  ratingNo`}
+                            rating="2"
+                            value="2"
+                            onClick={() => {
+                              // approveRejectLevel == "L2" ||
+                              // (leadEntriesNew == 1 &&
+                              //   leadEntriesRating == "competency") ||
+                              // (leadEntriesNew == 2 &&
+                              //   leadEntriesRating == "competency")
+                              //   ? handlenull()
+                              //   :
+
+                              isActiveLevel == 0 && approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  approveRejectLevel == "unAssigned"
+                                ? handlenull()
+                                : approvalDiasable[0]?.review_level == 2
+                                ? handlenull()
+                                : (approvalDiasable[0]?.review_level == 2 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level == 0 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level ==
+                                    undefined &&
+                                    approveRejectLevel == "L2")
+                                ? handlenull()
+                                : supervisorLevel[0]?.is_active != 0 &&
+                                  supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                  approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  leadEntriesRating == "supervisor" &&
+                                  hasReportees == 0
+                                ? handlenull()
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "competency" &&
+                                  approveRejectLevel == "L1"
+                                ? setDataRatingSuper("2")
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "competency"
+                                ? handlenull()
+                                : setDataRatingSuper("2");
+                            }}
+                          >
+                            <div
+                              className="nineboxRatings"
+                              style={{ textAlign: "center" }}
+                              value="8"
+                            >
+                              {/* Strong performer */}
+                              <span class="numbck">2</span>
+                            </div>
+                          </td>
+                          <td
+                            style={{
+                              cursor:
+                                //   approveRejectLevel == "L2" ||
+                                //   (leadEntriesNew == 1 &&
+                                //     leadEntriesRating == "competency") ||
+                                //   (leadEntriesNew == 2 &&
+                                //     leadEntriesRating == "competency")
+                                //     ? "not-allowed"
+                                //     : "pointer",
+                                isActiveLevel == 0 && approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    approveRejectLevel == "unAssigned"
+                                  ? "not-allowed"
+                                  : approvalDiasable[0]?.review_level == 2
+                                  ? "not-allowed"
+                                  : (approvalDiasable[0]?.review_level == 2 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level == 0 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level ==
+                                      undefined &&
+                                      approveRejectLevel == "L2")
+                                  ? "not-allowed"
+                                  : supervisorLevel[0]?.is_active != 0 &&
+                                    supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                    approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    leadEntriesRating == "supervisor" &&
+                                    hasReportees == 0
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "competency" &&
+                                    approveRejectLevel == "L1"
+                                  ? "pointer"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "competency"
+                                  ? "not-allowed"
+                                  : "pointer",
+                              borderRight: "3px solid #e3e3e3",
+                            }}
+                            className={`${
+                              dataRatingSuper == 3 ? "selectedRating" : ""
+                            }  ratingNo`}
+                            rating="3"
+                            onClick={() => {
+                              // approveRejectLevel == "L2" ||
+                              // (leadEntriesNew == 1 &&
+                              //   leadEntriesRating == "competency") ||
+                              // (leadEntriesNew == 2 &&
+                              //   leadEntriesRating == "competency")
+                              //   ? handlenull()
+                              //   :
+                              isActiveLevel == 0 && approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  approveRejectLevel == "unAssigned"
+                                ? handlenull()
+                                : approvalDiasable[0]?.review_level == 2
+                                ? handlenull()
+                                : (approvalDiasable[0]?.review_level == 2 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level == 0 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level ==
+                                    undefined &&
+                                    approveRejectLevel == "L2")
+                                ? handlenull()
+                                : supervisorLevel[0]?.is_active != 0 &&
+                                  supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                  approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  leadEntriesRating == "supervisor" &&
+                                  hasReportees == 0
+                                ? handlenull()
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "competency" &&
+                                  approveRejectLevel == "L1"
+                                ? setDataRatingSuper("3")
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "competency"
+                                ? handlenull()
+                                : setDataRatingSuper("3");
+                            }}
+                          >
+                            <div
+                              className="nineboxRatings"
+                              style={{ textAlign: "center" }}
+                            >
+                              {/* Star performer */}
+                              <span class="numbck">3</span>
+                            </div>
+                          </td>
+                          <td class="text-center ">
+                            <div
+                              className="nineboxRatings"
+                              style={{ textAlign: "center", color: "#545454" }}
+                            >
+                              {/* Star performer */}
+                              <b style={{ fontSize: "10px" }}>Performance</b>
+                            </div>
+                          </td>
+                        </tr>
+                        <tr class="titlehgt">
+                          <td
+                            class="text-center "
+                            style={{
+                              minWidth: "104px",
+                              borderRight: "3px solid #e3e3e3",
+                            }}
+                          >
+                            <b style={{ color: "#545454", fontSize: "10px" }}>
+                              Competency Rating{" "}
+                            </b>
+                            {/* <br></br>
+								<b style={{ color: "#545454" }}> On target</b> */}
+                          </td>
+
+                          <td
+                            className={`${
+                              dataCompRating == 1
+                                ? // ||
+                                  // supervisorRating[0]?.competency_rating == 1
+                                  "selectedRating"
+                                : ""
+                            }  ratingNo`}
+                            rating="1"
+                            onClick={() => {
+                              CountryDetailsloggin !==
+                              departmentCompetency[0]?.country
+                                ? setDataCompRating("1")
+                                : isActiveLevel == 0 &&
+                                  approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  approveRejectLevel == "unAssigned"
+                                ? handlenull()
+                                : leadIndividualLevel?.includes(
+                                    state.selectedReporteeId
+                                  )
+                                ? setDataCompRating("1")
+                                : approvalDiasable[0]?.review_level == 2
+                                ? handlenull()
+                                : (approvalDiasable[0]?.review_level == 2 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level == 0 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level ==
+                                    undefined &&
+                                    approveRejectLevel == "L2")
+                                ? handlenull()
+                                : supervisorLevel[0]?.is_active != 0 &&
+                                  supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                  approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  leadEntriesRating == "supervisor" &&
+                                  hasReportees == 0
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  leadEntriesRating == "supervisor"
+                                ? setDataCompRating("1")
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "supervisor"
+                                ? handlenull()
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "competency"
+                                ? setDataCompRating("1")
+                                : handlenull();
+                            }}
+                            // onClick={() => {
+                            //   (leadEntriesNew == 1 &&
+                            //     approveRejectLevel == "L1" &&
+                            //     leadEntriesRating == "supervisor") ||
+                            //   (leadEntriesNew == 2 &&
+                            //     leadEntriesRating == "supervisor" &&
+                            //     approveRejectLevel == "L1")
+                            //     ? setDataCompRating(1)
+                            //     : handlenull();
+                            // }}
+                            style={{
+                              cursor:
+                                CountryDetailsloggin !==
+                                departmentCompetency[0]?.country
+                                  ? "pointer"
+                                  : isActiveLevel == 0 &&
+                                    approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    approveRejectLevel == "unAssigned"
+                                  ? "not-allowed"
+                                  : leadIndividualLevel?.includes(
+                                      state.selectedReporteeId
+                                    )
+                                  ? "pointer"
+                                  : approvalDiasable[0]?.review_level == 2
+                                  ? "not-allowed"
+                                  : (approvalDiasable[0]?.review_level == 2 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level == 0 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level ==
+                                      undefined &&
+                                      approveRejectLevel == "L2")
+                                  ? "not-allowed"
+                                  : supervisorLevel[0]?.is_active != 0 &&
+                                    supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                    approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    leadEntriesRating == "supervisor" &&
+                                    hasReportees == 0
+                                  ? "not-allowed"
+                                  : leadEntriesNew == "1" &&
+                                    leadEntriesRating == "supervisor"
+                                  ? "pointer"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "supervisor"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "competency"
+                                  ? "pointer"
+                                  : "not-allowed",
+
+                              // cursor:
+                              //   (approveRejectLevel == "L1" &&
+                              //     leadEntriesNew == 1 &&
+                              //     leadEntriesRating == "supervisor") ||
+                              //   (leadEntriesNew == 2 &&
+                              //     approveRejectLevel == "L1" &&
+                              //     leadEntriesRating == "supervisor")
+                              //     ? "pointer"
+                              //     : "not-allowed",
+
+                              borderRight: "3px solid #e3e3e3",
+                            }}
+                          >
+                            <div
+                              className="nineboxRatings"
+                              style={{
+                                textAlign: "center",
+                              }}
+                            >
+                              {/* Acceptable performer */}
+                              <span class="numbck">1</span>
+                            </div>
+                          </td>
+                          <td
+                            className={`${
+                              dataCompRating == 2
+                                ? //  ||
+                                  // supervisorRating[0]?.competency_rating == 2
+                                  // competencyDatalength.length > 0 &&
+                                  "selectedRating"
+                                : ""
+                            }  ratingNo`}
+                            rating="2"
+                            onClick={() => {
+                              // (leadEntriesNew == 1 &&
+                              //   leadEntriesRating == "supervisor" &&
+                              //   approveRejectLevel == "L1") ||
+                              // (leadEntriesNew == 2 &&
+                              //   approveRejectLevel == "L1" &&
+                              //   leadEntriesRating == "supervisor")
+                              //   ? handlenull()
+                              //   : setDataCompRating(2);
+                              CountryDetailsloggin !==
+                              departmentCompetency[0]?.country
+                                ? setDataCompRating("2")
+                                : isActiveLevel == 0 &&
+                                  approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  approveRejectLevel == "unAssigned"
+                                ? handlenull()
+                                : leadIndividualLevel?.includes(
+                                    state.selectedReporteeId
+                                  )
+                                ? setDataCompRating("2")
+                                : approvalDiasable[0]?.review_level == 2
+                                ? handlenull()
+                                : (approvalDiasable[0]?.review_level == 2 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level == 0 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level ==
+                                    undefined &&
+                                    approveRejectLevel == "L2")
+                                ? handlenull()
+                                : supervisorLevel[0]?.is_active != 0 &&
+                                  supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                  approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  leadEntriesRating == "supervisor" &&
+                                  hasReportees == 0
+                                ? handlenull()
+                                : leadEntriesNew == "1" &&
+                                  leadEntriesRating == "supervisor"
+                                ? setDataCompRating("2")
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "supervisor"
+                                ? handlenull()
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "competency"
+                                ? setDataCompRating("2")
+                                : handlenull();
+                            }}
+                            style={{
+                              cursor:
+                                CountryDetailsloggin !==
+                                departmentCompetency[0]?.country
+                                  ? "pointer"
+                                  : isActiveLevel == 0 &&
+                                    approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    approveRejectLevel == "unAssigned"
+                                  ? "not-allowed"
+                                  : leadIndividualLevel?.includes(
+                                      state.selectedReporteeId
+                                    )
+                                  ? "pointer"
+                                  : approvalDiasable[0]?.review_level == 2
+                                  ? "not-allowed"
+                                  : (approvalDiasable[0]?.review_level == 2 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level == 0 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level ==
+                                      undefined &&
+                                      approveRejectLevel == "L2")
+                                  ? "not-allowed"
+                                  : supervisorLevel[0]?.is_active != 0 &&
+                                    supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                    approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    leadEntriesRating == "supervisor" &&
+                                    hasReportees == 0
+                                  ? "not-allowed"
+                                  : leadEntriesNew == "1" &&
+                                    leadEntriesRating == "supervisor"
+                                  ? "pointer"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "supervisor"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "competency"
+                                  ? "pointer"
+                                  : "not-allowed",
+
+                              borderRight: "3px solid #e3e3e3",
+                            }}
+                          >
+                            <div
+                              class="nineboxRatings"
+                              style={{
+                                textAlign: "center",
+                                cursor: handlenull(),
+                                // approveRejectLevel == "L2" ||
+                                // (leadEntriesNew == 1 &&
+                                //   leadEntriesRating == null)
+                                //   ? "not-allowed"
+                                //   : "pointer",
+                              }}
+                            >
+                              {/* Core performer */}
+                              <span class="numbck">2</span>
+                            </div>
+                          </td>
+                          <td
+                            className={`${
+                              dataCompRating == 3
+                                ? // ||
+                                  // supervisorRating[0]?.competency_rating == 3
+                                  // competencyDatalength.length > 0 &&
+                                  "selectedRating"
+                                : ""
+                            }  ratingNo`}
+                            rating="3"
+                            onClick={() => {
+                              // (leadEntriesNew == 1 &&
+                              //   approveRejectLevel == "L1" &&
+                              //   leadEntriesRating == "supervisor") ||
+                              // (leadEntriesNew == 2 &&
+                              //   approveRejectLevel == "L1" &&
+                              //   leadEntriesRating == "supervisor")
+                              //   ? handlenull()
+                              //   : setDataCompRating(3);
+                              CountryDetailsloggin !==
+                              departmentCompetency[0]?.country
+                                ? setDataCompRating("3")
+                                : isActiveLevel == 0 &&
+                                  approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  approveRejectLevel == "unAssigned"
+                                ? handlenull()
+                                : leadIndividualLevel?.includes(
+                                    state.selectedReporteeId
+                                  )
+                                ? setDataCompRating("3")
+                                : approvalDiasable[0]?.review_level == 2
+                                ? handlenull()
+                                : (approvalDiasable[0]?.review_level == 2 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level == 0 &&
+                                    approveRejectLevel == "L2") ||
+                                  (approvalDiasable[0]?.review_level ==
+                                    undefined &&
+                                    approveRejectLevel == "L2")
+                                ? handlenull()
+                                : supervisorLevel[0]?.is_active != 0 &&
+                                  supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                  approveRejectLevel == "L2"
+                                ? handlenull()
+                                : leadEntriesNew == 1 &&
+                                  leadEntriesRating == "supervisor" &&
+                                  hasReportees == 0
+                                ? handlenull()
+                                : leadEntriesNew == "1" &&
+                                  leadEntriesRating == "supervisor"
+                                ? setDataCompRating("3")
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "supervisor"
+                                ? handlenull()
+                                : leadEntriesNew == 2 &&
+                                  leadEntriesRating == "competency"
+                                ? setDataCompRating("3")
+                                : handlenull();
+                            }}
+                            style={{
+                              cursor:
+                                CountryDetailsloggin !==
+                                departmentCompetency[0]?.country
+                                  ? "pointer"
+                                  : isActiveLevel == 0 &&
+                                    approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    approveRejectLevel == "unAssigned"
+                                  ? "not-allowed"
+                                  : leadIndividualLevel?.includes(
+                                      state.selectedReporteeId
+                                    )
+                                  ? "pointer"
+                                  : approvalDiasable[0]?.review_level == 2
+                                  ? "not-allowed"
+                                  : (approvalDiasable[0]?.review_level == 2 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level == 0 &&
+                                      approveRejectLevel == "L2") ||
+                                    (approvalDiasable[0]?.review_level ==
+                                      undefined &&
+                                      approveRejectLevel == "L2")
+                                  ? "not-allowed"
+                                  : supervisorLevel[0]?.is_active != 0 &&
+                                    supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                    approveRejectLevel == "L2"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 1 &&
+                                    leadEntriesRating == "supervisor" &&
+                                    hasReportees == 0
+                                  ? "not-allowed"
+                                  : leadEntriesNew == "1" &&
+                                    leadEntriesRating == "supervisor"
+                                  ? "pointer"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "supervisor"
+                                  ? "not-allowed"
+                                  : leadEntriesNew == 2 &&
+                                    leadEntriesRating == "competency"
+                                  ? "pointer"
+                                  : "not-allowed",
+
+                              borderRight: "3px solid #e3e3e3",
+                            }}
+                          >
+                            <div
+                              className="nineboxRatings"
+                              style={{ textAlign: "center" }}
+                            >
+                              {/* Rising star */}
+                              <span class="numbck">3</span>
+                            </div>
+                          </td>
+                          <td
+                            class="text-center "
+                            style={{ borderLeft: "3px solid #e4e4e4" }}
+                          >
+                            <div
+                              className="nineboxRatings"
+                              style={{ textAlign: "center" }}
+                            >
+                              {/* Star performer */}
+                              <b style={{ fontSize: "10px" }}>Potential</b>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-12">
+                <div class="col-md-6 p0 apraisaldata">
+                  <table className="table apraisaldata-first">
+                    <tbody>
+                      <tr style={{ fontSize: "12px", padding: "3px" }}>
+                        <td colSpan="6" class="panelHd">
+                          <span>Appraisal Data</span>
+                        </td>
+                      </tr>
+                      <tr className="appraisalProgress">
+                        <td style={{ color: "#207baf", fontSize: "12px" }}>
+                          Completion %
+                        </td>
+                        <td style={{ background: "rgb(223 223 223)" }}>
+                          <div
+                            class="progress"
+                            style={{
+                              height: "18px",
+                              width: "70px",
+                              marginRight: "5px",
+                              position: "relative",
+                              marginLeft: "15px",
+                            }}
+                          >
+                            <div
+                              class="progress-bar progress-bar-striped bg-warning"
+                              role="progressbar"
+                              aria-valuemin="0"
+                              aria-valuemax="100"
+                              style={{
+                                width: `${
+                                  ((state.employeeObjectiveWiseRatings !=
+                                    undefined &&
+                                  state.employeeObjectiveWiseRatings[0]
+                                    ?.completionPercentage != undefined
+                                    ? state.employeeObjectiveWiseRatings[0]
+                                        ?.completionPercentage
+                                    : 0) +
+                                    (state.employeeObjectiveWiseRatings !=
+                                      undefined &&
+                                    state.employeeObjectiveWiseRatings[1]
+                                      ?.completionPercentage != undefined
+                                      ? state.employeeObjectiveWiseRatings[1]
+                                          ?.completionPercentage
+                                      : 0)) /
+                                    2 +
+                                  `%`
+                                }`,
+                              }}
+                            ></div>
+                            <div
+                              class="progress-bar-title"
+                              style={{
+                                position: "absolute",
+                                textAlign: "center",
+                                lineHeight: "20px",
+                                overflow: "hidden",
+                                color: "black",
+                                right: "0",
+                                left: "0",
+                                top: "0",
+                              }}
+                            >
+                              {((state.employeeObjectiveWiseRatings !=
+                                undefined &&
+                              state.employeeObjectiveWiseRatings[0]
+                                ?.completionPercentage != undefined
+                                ? state.employeeObjectiveWiseRatings[0]
+                                    ?.completionPercentage
+                                : 0) +
+                                (state.employeeObjectiveWiseRatings !=
+                                  undefined &&
+                                state.employeeObjectiveWiseRatings[1]
+                                  ?.completionPercentage != undefined
+                                  ? state.employeeObjectiveWiseRatings[1]
+                                      ?.completionPercentage
+                                  : 0)) /
+                                2 +
+                                `%`}
+                            </div>
+                          </div>
+                        </td>
+
+                        <td style={{ color: "#207baf", fontSize: "12px" }}>
+                          Performance %
+                        </td>
+                        <td style={{ background: "rgb(223 223 223)" }}>
+                          <div
+                            class="progress"
+                            style={{
+                              height: "18px",
+                              width: "80px",
+                              marginRight: "5px",
+                              position: "relative",
+                              marginLeft: "15px",
+                            }}
+                          >
+                            <div
+                              class="progress-bar progress-bar-striped bg-warning"
+                              role="progressbar"
+                              aria-valuemin="0"
+                              aria-valuemax="100"
+                              style={{
+                                width: `${
+                                  (state.employeeObjectiveWiseRatings !=
+                                    undefined &&
+                                  state.employeeObjectiveWiseRatings[0]
+                                    ?.completionPercentage != undefined
+                                    ? state.employeeObjectiveWiseRatings[0]
+                                        ?.completionPercentage
+                                    : 0) + `%`
+                                }`,
+                              }}
+                            ></div>
+                            <div
+                              class="progress-bar-title"
+                              style={{
+                                position: "absolute",
+                                textAlign: "center",
+                                lineHeight: "20px",
+                                overflow: "hidden",
+                                color: "black",
+                                right: "0",
+                                left: "0",
+                                top: "0",
+                              }}
+                            >
+                              {(state.employeeObjectiveWiseRatings !=
+                                undefined &&
+                              state.employeeObjectiveWiseRatings[0]
+                                ?.completionPercentage != undefined
+                                ? state.employeeObjectiveWiseRatings[0]
+                                    ?.completionPercentage
+                                : 0) + `%`}
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ color: "#207baf", fontSize: "12px" }}>
+                          Behavioural %
+                        </td>
+                        <td style={{ background: "rgb(223 223 223)" }}>
+                          <div
+                            class="progress"
+                            style={{
+                              height: "18px",
+                              width: "80px",
+                              marginRight: "5px",
+                              position: "relative",
+                              marginLeft: "15px",
+                            }}
+                          >
+                            <div
+                              className="progress-bar progress-bar-striped bg-warning"
+                              role="progressbar"
+                              aria-valuemin="0"
+                              aria-valuemax="100"
+                              style={{
+                                width: `${
+                                  (state.employeeObjectiveWiseRatings !=
+                                    undefined &&
+                                  state.employeeObjectiveWiseRatings[1]
+                                    ?.completionPercentage != undefined
+                                    ? state.employeeObjectiveWiseRatings[1]
+                                        ?.completionPercentage
+                                    : 0) + `%`
+                                }`,
+                              }}
+                            ></div>
+                            <div
+                              class="progress-bar-title"
+                              style={{
+                                position: "absolute",
+                                textAlign: "center",
+                                lineHeight: "20px",
+                                overflow: "hidden",
+                                color: "black",
+                                right: "0",
+                                left: "0",
+                                top: "0",
+                              }}
+                            >
+                              {(state.employeeObjectiveWiseRatings !=
+                                undefined &&
+                              state.employeeObjectiveWiseRatings[1]
+                                ?.completionPercentage != undefined
+                                ? state.employeeObjectiveWiseRatings[1]
+                                    ?.completionPercentage
+                                : 0) + `%`}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <table class="table apraisaldata-second">
+                    <tbody>
+                      <tr>
+                        <td
+                          class="col-md-12 d-flex justify-content-between apraisallabel1"
+                          style={{ padding: "3px" }}
+                        >
+                          {" "}
+                          <b style={{ color: "#545454", fontSize: "12px" }}>
+                            Exceptionally high performer ? &nbsp;&nbsp;&nbsp;
+                          </b>
+                          <span>
+                            <input
+                              type="radio"
+                              name="is_direct"
+                              value="1"
+                              id="yes"
+                              checked={data.isPerformer == "1"}
+                              onChange={(e) => {
+                                dispatchData({
+                                  type: "TYPE.IS_PERFORMER",
+                                  payload: { setValue: e.target.value },
+                                });
+                              }}
+                            />
+                            <span
+                              for="yes"
+                              style={{ color: "black", paddingLeft: "0px" }}
+                            >
+                              Yes
+                            </span>
+                            {/* <input type='radio' name='is_direct' checked={valueData==="No"}  value="No" 
+														  onChange={(e)=>{setValueData(e.target.value);setFormData({ ...formData, ["signedSow"]: 0 });}} />
+															<label>Yes</label> */}
+                            &nbsp;&nbsp;&nbsp;
+                            {data.isPerformer == undefined ? true : false}
+                            <input
+                              type="radio"
+                              name="is_direct"
+                              value="0"
+                              id="no"
+                              checked={
+                                data.isPerformer == "0" ||
+                                data.isPerformer == NaN
+                              }
+                              onChange={(e) => {
+                                dispatchData({
+                                  type: "TYPE.IS_PERFORMER",
+                                  payload: { setValue: e.target.value },
+                                });
+                              }}
+                            />
+                            <label for="no" style={{ color: "black" }}>
+                              No
+                            </label>
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td
+                          class="col-md-12 apraisallabel"
+                          style={{
+                            color: "#545454",
+                            padding: "3px",
+                            fontSize: "12px",
+                          }}
+                        >
+                          {" "}
+                          <b style={{ color: "#545454" }}>
+                            Any performance issues to be notified to HR?{" "}
+                          </b>
+                          <span>
+                            <i>
+                              <a
+                                href="mailto:hrbp@prolifics.com?Subject=Performance%20Issues"
+                                class="notify"
+                                style={{ color: "#207baf" }}
+                                onClick={(e) => {
+                                  dispatchData({
+                                    type: "UpdateNotifiedToHR",
+                                    payload: 1,
+                                  });
+                                }}
+                              >
+                                <span>
+                                  <i
+                                    class="fa fa-chevron-circle-right fa-xs"
+                                    style={{ color: "#207baf" }}
+                                    aria-hidden="true"
+                                  ></i>{" "}
+                                  Notify{" "}
+                                </span>
+                              </a>
+                            </i>
+                            <input
+                              type="hidden"
+                              value="0"
+                              class="notifyVal"
+                              name="question[notified_to_hr]"
+                            />
+                          </span>
+                        </td>{" "}
+                      </tr>
+                      <tr>
+                        <td
+                          class="col-md-12 apraisallabel2 "
+                          style={{ padding: "2px" }}
+                        >
+                          <div class="pro_comments p0 subQues">
+                            <label>
+                              <b style={{ color: "#545454", fontSize: "12px" }}>
+                                Project Manager Feedback:
+                              </b>
+                            </label>
+                            <div>
+                              <textarea
+                                name="question[promotion_comments]"
+                                type="NA"
+                                disabled
+                                defaultValue={
+                                  state.managerFeedback === undefined
+                                    ? "NA"
+                                    : state.managerFeedback
+                                }
+                                style={{
+                                  width: "100%",
+                                  height: "33px",
+                                  resize: "none",
+                                  color: "#545454",
+                                  borderColor: "#d9d1d1",
+                                }}
+                                onChange={(e) => {
+                                  dispatchData({
+                                    type: "TYPE.PROJECT_MANAGER_FEEDBACK",
+                                    payload: { setValue: e.target.value },
+                                  });
+                                }}
+                              ></textarea>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td
+                          class="col-md-12 p0 apraisallabel3"
+                          style={{ padding: "4px" }}
+                        >
+                          <div class="pro_comments p0 subQues">
+                            <label>
+                              <b style={{ color: "#545454", fontSize: "12px" }}>
+                                Comments to support the above :
+                              </b>
+                              <span style={{ color: "red" }}>*</span>
+                            </label>
+                            <div>
+                              {approvalDiasable[0]?.review_level == 2 ||
+                              (supervisorLevel[0]?.is_active != 0 &&
+                                supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                approveRejectLevel == "L2") ||
+                              (supervisorLevel[0]?.is_active != 0 &&
+                                supervisorLevel[0]?.nine_box_rating !== 0 &&
+                                approveRejectLevel == "L2" &&
+                                approvalDiasable[0]?.review_level == 2) ||
+                              (approvalDiasable[0]?.review_level == 0 &&
+                                approveRejectLevel == "L2") ||
+                              (approvalDiasable[0]?.review_level == 2 &&
+                                approveRejectLevel == "L2") ||
+                              (approvalDiasable[0]?.review_level == undefined &&
+                                approveRejectLevel == "L2") ||
+                              (leadEntriesNew == 1 &&
+                                approveRejectLevel == "unAssigned") ? (
+                                <div style={{ cursor: "not-allowed" }}>
+                                  {" "}
+                                  <textarea
+                                    name="question[promotion_comments]"
+                                    className={
+                                      commentstosupporttheaboveValidation
+                                    }
+                                    style={{
+                                      width: "100%",
+                                      height: "38px",
+                                      resize: "none",
+                                      color: "#545454",
+                                      borderColor: "#d9d1d1",
+                                      // cursor: "not-allowed",
+                                      pointerEvents: "none",
+                                    }}
+                                    defaultValue={data.supportComments}
+                                  ></textarea>
+                                </div>
+                              ) : (
+                                <textarea
+                                  name="question[promotion_comments]"
+                                  className={
+                                    commentstosupporttheaboveValidation
+                                  }
+                                  style={{
+                                    width: "100%",
+                                    height: "38px",
+                                    resize: "none",
+                                    color: "#545454",
+                                    borderColor: "#d9d1d1",
+                                  }}
+                                  defaultValue={data.supportComments}
+                                  onChange={(e) => {
+                                    dispatchData({
+                                      type: "TYPE.COMMENTS_TO_SUPPORT",
+                                      payload: { setValue: e.target.value },
+                                    });
+                                  }}
+                                ></textarea>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="col-md-6 pr0 promotiondata">
+                  <div
+                    class="panelHd p0"
+                    style={{ height: "auto", padding: "3px", fontSize: "12px" }}
+                  >
+                    <span>Promotion Data</span>
+                  </div>
+
+                  <div class="col-md-7 p0 pr5 promTblPrnt">
+                    <table
+                      class="table promTbl"
+                      style={{
+                        marginTop: "0px",
+                        border: "1px solid #ddd",
+                        borderTop: "0px",
+                      }}
+                    >
+                      <tbody>
+                        <tr>
+                          <td colSpan="3" class="tcell-panelHd p0 text-center">
+                            <span>Job Data</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            class="subhd"
+                            style={{ color: "#545454", fontSize: "12px" }}
+                          >
+                            <b style={{ color: "#545454" }}>
+                              <i class="fa fa-dot"></i>Date of Join
+                            </b>
+                          </td>
+                          <td>:</td>
+                          <td class="subval">
+                            {promotion &&
+                              promotion.length > 0 &&
+                              moment(promotion[0].renewalDate).format(
+                                "DD-MMM-YYYY"
+                              )}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            class="subhd"
+                            style={{ color: "#545454", fontSize: "12px" }}
+                          >
+                            <b style={{ color: "#545454" }}>Designation</b>
+                          </td>
+                          <td>:</td>
+                          <td
+                            class="subval"
+                            style={{ color: "#545454", fontSize: "12px" }}
+                          >
+                            {promotion &&
+                              promotion.length > 0 &&
+                              promotion[0].designation}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            class="subhd"
+                            style={{ color: "#545454", fontSize: "12px" }}
+                          >
+                            <b style={{ color: "#545454" }}>
+                              Last Promotion Date
+                            </b>
+                          </td>
+                          <td>:</td>
+                          <td
+                            class="subval"
+                            style={{ color: "#545454", fontSize: "12px" }}
+                          >
+                            <span>
+                              {moment(promotionData[0]?.PromotionDate).format(
+                                "DD-MMM-YYYY"
+                              ) == "Invalid date"
+                                ? "N/A"
+                                : moment(
+                                    promotionData[0]?.PromotionDate
+                                  ).format("DD-MMM-YYYY")}
+                            </span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            class="subhd"
+                            style={{ color: "#545454", fontSize: "12px" }}
+                          >
+                            {" "}
+                            <b style={{ color: "#545454", fontSize: "12px" }}>
+                              Ready for promotion?
+                            </b>
+                          </td>
+                          <td>:</td>
+                          <td>
+                            {" "}
+                            <input
+                              type="radio"
+                              value="1"
+                              checked={data.submitQuestionaire.promotion === 1}
+                              name="question[promotion]"
+                              class="yesPromotion mt0 promData"
+                              disabled={promotionReady}
+                              onChange={(e) => {
+                                dispatchData({
+                                  type: "TYPE.READY_FOR_PROMOTION",
+                                  payload: { setValue: "1" },
+                                });
+                                data.submitQuestionaire.promotion = 1;
+                              }}
+                            />
+                            &nbsp;
+                            <span
+                              class="span1 span"
+                              style={{
+                                color: "#545454",
+                                fontSize: "12px",
+                                padding: "2px",
+                              }}
+                            >
+                              Yes
+                            </span>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            <input
+                              type="radio"
+                              value="0"
+                              name="question[promotion]"
+                              checked={data.submitQuestionaire.promotion === 0}
+                              class="noPromotion mt0 promData"
+                              disabled={promotionReady}
+                              onChange={(e) => {
+                                dispatchData({
+                                  type: "TYPE.READY_FOR_PROMOTION",
+                                  payload: { setValue: "0" },
+                                });
+                                data.submitQuestionaire.promotion = 0;
+                              }}
+                            />
+                            &nbsp;
+                            <span
+                              class="span1 span"
+                              style={{ color: "#545454" }}
+                            >
+                              No
+                            </span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div
+                    class="col-md-5 pr0 mb-2 checkTblPrnt"
+                    style={{ height: "114px" }}
+                  >
+                    <table class="table checkTbl">
+                      <thead>
+                        <tr>
+                          <td colSpan="3" class="tcell-panelHd p0 text-center">
+                            <span>Checklist</span>
+                          </td>
+                        </tr>
+                        <tr
+                          style={{
+                            color: "#545454",
+                            borderBottom: "2px solid #fddfdf",
+                          }}
+                        >
+                          <th>Type</th>
+                          <th>Acheivable</th>
+                          <th>Achieved</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        <tr
+                          className={
+                            state.checkList.learninghrs >= totalHours
+                              ? "checkListGreen"
+                              : "checkListRed"
+                          }
+                        >
+                          <td>Learning Hours</td>
+                          <td>{totalHours} hrs</td>
+                          <td>
+                            {state.checkList.learninghrs === "null"
+                              ? "0"
+                              : state.checkList.learninghrs}{" "}
+                            hrs
+                          </td>
+                        </tr>
+                        <tr
+                          className={
+                            state.checkList.ComplianceCourses === "100.0"
+                              ? "checkListGreen"
+                              : "checkListRed"
+                          }
+                        >
+                          <td>Compliance Courses</td>
+                          <td>100 %</td>
+                          <td>
+                            {state.checkList.ComplianceCourses === "null"
+                              ? "0"
+                              : state.checkList.ComplianceCourses}{" "}
+                            %
+                          </td>
+                        </tr>
+                        <tr
+                          className={
+                            state.checkList.cdp === "100.0"
+                              ? "checkListGreen"
+                              : "checkListRed"
+                          }
+                        >
+                          <td>
+                            <span title="Career Development Program">CDP</span>
+                          </td>
+                          <td>100 %</td>
+                          <td>
+                            {state.checkList.cdp === "null"
+                              ? "0"
+                              : state.checkList.cdp}{" "}
+                            %
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <table
+                    className="table table-bordered mt-2"
+                    style={{
+                      color: "#545454",
+                      margin: "0px",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    <tbody>
+                      <tr>
+                        <td
+                          class="col-md-12 prmcmts"
+                          style={{ padding: "0px", height: "80px" }}
+                        >
+                          <div class="">
+                            <label>
+                              <b
+                                style={{ color: "#545454", marginLeft: "3px" }}
+                              >
+                                Promotion Comments :{" "}
+                              </b>
+                              <span style={{ color: "red" }}>*</span>
+                            </label>
+                            <div style={{ padding: "5px" }}>
+                              <textarea
+                                name="question[promotion_comments]"
+                                value={
+                                  data.submitQuestionaire.promotionComments
+                                }
+                                disabled={promotionReady}
+                                style={{
+                                  width: "100%",
+                                  height: "45px",
+                                  resize: "none",
+                                }}
+                                onChange={(e) => {
+                                  dispatchData({
+                                    type: "TYPE.PROMOTION_COMMENTS",
+                                    payload: { setValue: e.target.value },
+                                  });
+                                  data.submitQuestionaire.promotionComments =
+                                    e.target.value;
+                                }}
+                              ></textarea>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <div
+              className="col-md-12 d-flex justify-content-center"
+              style={{ cursor: componentDisabled ? "no-drop" : "" }}
+            >
+              {
+                // supervisorLevel[0]?.is_active != 0 &&
+                supervisorLevel[0]?.nine_box_rating !== 0 &&
+                approveRejectLevel == "L2" ? (
+                  <>
+                    <button
+                      className="btnForPEP"
+                      // onClick={handleApprove}
+                      onClick={() => {
+                        (approvalDiasable[0]?.review_level == 2 &&
+                          approveRejectLevel == "L2") ||
+                        (supervisorLevel[0]?.is_active == 0 &&
+                          approveRejectLevel == "L2") ||
+                        (approvalDiasable[0]?.review_level == undefined &&
+                          approveRejectLevel == "L2")
+                          ? setApprovePop(false)
+                          : setApprovePop(true);
+                      }}
+                      style={{
+                        paddingBottom: "5px",
+                        marginRight: "10px",
+                        width: "75px",
+                        cursor:
+                          (approvalDiasable[0]?.review_level == 2 &&
+                            approveRejectLevel == "L2") ||
+                          (supervisorLevel[0]?.is_active == 0 &&
+                            approveRejectLevel == "L2") ||
+                          // (approvalDiasable[0]?.review_level == 0 &&
+                          //   approveRejectLevel == "L2") ||
+                          (approvalDiasable[0]?.review_level == undefined &&
+                            approveRejectLevel == "L2")
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className="btnForPEP"
+                      // onClick={handleReject}
+                      onClick={() => {
+                        (approvalDiasable[0]?.review_level == 2 &&
+                          approveRejectLevel == "L2") ||
+                        (supervisorLevel[0]?.is_active == 0 &&
+                          approveRejectLevel == "L2") ||
+                        (approvalDiasable[0]?.review_level == undefined &&
+                          approveRejectLevel == "L2")
+                          ? setRejectPop(false)
+                          : setRejectPop(true);
+                      }}
+                      style={{
+                        paddingBottom: "5px",
+                        backgroundColor: "red",
+                        width: "75px",
+                        cursor:
+                          (approvalDiasable[0]?.review_level == 2 &&
+                            approveRejectLevel == "L2") ||
+                          (supervisorLevel[0]?.is_active == 0 &&
+                            approveRejectLevel == "L2") ||
+                          (approvalDiasable[0]?.review_level == undefined &&
+                            approveRejectLevel == "L2")
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      Reject
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="btnForPEP"
+                    onClick={() => {
+                      isActiveLevel == 0 && approveRejectLevel == "L2"
+                        ? handlenull()
+                        : leadEntriesNew == 1 &&
+                          approveRejectLevel == "unAssigned"
+                        ? handlenull()
+                        : approvalDiasable[0]?.review_level == 2
+                        ? handlenull()
+                        : (approvalDiasable[0]?.review_level == 2 &&
+                            approveRejectLevel == "L2") ||
+                          (approvalDiasable[0]?.review_level == 0 &&
+                            approveRejectLevel == "L2") ||
+                          (approvalDiasable[0]?.review_level == undefined &&
+                            approveRejectLevel == "L2")
+                        ? handlenull()
+                        : NewSubmit();
+                    }}
+                    style={{
+                      cursor:
+                        isActiveLevel == 0 && approveRejectLevel == "L2"
+                          ? "not-allowed"
+                          : leadEntriesNew == 1 &&
+                            approveRejectLevel == "unAssigned"
+                          ? "not-allowed"
+                          : approvalDiasable[0]?.review_level == 2
+                          ? "not-allowed"
+                          : (approvalDiasable[0]?.review_level == 2 &&
+                              approveRejectLevel == "L2") ||
+                            (approvalDiasable[0]?.review_level == 0 &&
+                              approveRejectLevel == "L2") ||
+                            (approvalDiasable[0]?.review_level == undefined &&
+                              approveRejectLevel == "L2")
+                          ? "not-allowed"
+                          : "pointer",
+                      paddingBottom: "5px",
+                      backgroundColor: "rgb(20, 88, 155)",
+                      color: "white",
+                    }}
+                    disabled={
+                      componentDisabled &&
+                      approvalDiasable[0]?.review_level == 2
+                    }
+                  >
+                    Submit
+                  </button>
+                )
+              }
+            </div>
+          </DialogActions>
+        </Dialog>
+      </div>
+
+      <Dialog open={openApprove} onClose={handleApproverClose}>
+        <DialogTitle className="dialogTitle border-bottom">
+          {"Change Rating"}
+        </DialogTitle>
+        <DialogContent>Are you sure you want to change rating?</DialogContent>
+        <DialogActions>
+          <button
+            onClick={() => {
+              dispatchData({
+                type: "TYPE.RATING",
+                payload: { setValue: newRatingDbox },
+              });
+              handleApproverClose();
+            }}
+            className="btn btn-primary"
+            autoFocus
+          >
+            YES
+          </button>
+          <button
+            onClick={handleApproverClose}
+            className="btn btn-secondary"
+            autoFocus
+          >
+            NO
+          </button>
+        </DialogActions>
+      </Dialog>
+
+      {approvePop && (
+        <TeamReviewsNineBoxApprove
+          approvePop={approvePop}
+          handleCloseApprove={handleCloseApprove}
+          handleApprove={handleApprove}
+          loaderState={loaderState}
+          pageMessageNew={pageMessageNew}
+          approvalCooments={approvalCooments}
+          setApprovalCooments={setApprovalCooments}
+          approveLoader={approveLoader}
+          commentValidation={commentValidation}
+          setCoomentValidation={setCoomentValidation}
+          commentstosupporttheaboveValidationNew={
+            commentstosupporttheaboveValidationNew
+          }
+          setcommentstosupporttheaboveValidationNew={
+            setcommentstosupporttheaboveValidationNew
+          }
+        />
+      )}
+      {rejectPop && (
+        <TeamReviewsNineBoxReject
+          rejectPop={rejectPop}
+          handleCloseReject={handleCloseReject}
+          handleReject={handleReject}
+          loaderStateReject={loaderStateReject}
+          pageMessageNew={pageMessageNew}
+          approvalCooments={approvalCooments}
+          rejectLoader={rejectLoader}
+          setApprovalCooments={setApprovalCooments}
+          commentValidation={commentValidation}
+          setCoomentValidation={setCoomentValidation}
+          commentstosupporttheaboveValidationNew={
+            commentstosupporttheaboveValidationNew
+          }
+          setcommentstosupporttheaboveValidationNew={
+            setcommentstosupporttheaboveValidationNew
+          }
+        />
+      )}
+      {loader && <Loader />}
+    </div>
+  );
+}
+
+export default React.memo(TeamReviewsSubmitEmployeeReview);
